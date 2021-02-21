@@ -22,7 +22,7 @@ The final hidden link can be obtained from the json returned at json.data.link.i
 
 ## Data Collection
 
-Disclaimer: I am not associated with nor endorse the messages collected by the bot. Data is collected from every single message. The data collected associated with time are in UTC format.
+Disclaimer: I am not associated with nor endorse the messages collected by the bot. Data is collected from every single message. The data collected associated with time are in UTC format. Message id, channel id, channel name, author id, author username, unix epoch time, year, month, day, hour, minute, second, command, content, and time elapsed for command are all recorded. There is not really any monetary benefit from collecting this data, but it is just interesting to look at an analyze to see the behaviors of the people bypassing the Linkvertise links.
 
 ## Commands
 
