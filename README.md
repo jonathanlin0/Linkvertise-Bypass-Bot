@@ -2,7 +2,9 @@
 
 ## About
 
-This program is a Linkvertise shortlink bypasser. Linkvertise links are hyperlinks that have the target link hidden behind a plethora of obstacles, whether that be downloading viruses or watching ads. Since most people needing to bypass Linkvertise links also use the messaging platform Discord, I integrated the program with a Discord bot, in which you can invite to your server by [clicking here](https://discord.com/api/oauth2/authorize?client_id=811339635950485546&permissions=8&scope=bot).
+This program is a Linkvertise shortlink bypasser. Linkvertise links are hyperlinks that have the target link hidden behind a plethora of obstacles, whether that be downloading viruses or watching ads. Since most people needing to bypass Linkvertise links also use the messaging platform Discord, I integrated the program with a Discord bot, in which you can directly invite to your server by [clicking here](https://discord.com/api/oauth2/authorize?client_id=811339635950485546&permissions=8&scope=bot).
+
+`log.txt` is a log that displays the last time a certain user (identified by the Discord user id) has bypassed a link. Keeping a log of last used time is used for the cooldown feature, in which users in `premium.txt` have no cooldown.
 
 ## How It Works
 
@@ -18,6 +20,10 @@ Use the same replacement process used in the first request to replace the part o
 
 The final hidden link can be obtained from the json returned at json.data.link.id
 
+## Data Collection
+
+Disclaimer: I am not associated with nor endorse the messages collected by the bot. Data is collected from every single message. The data collected associated with time are in UTC format.
+
 ## Commands
 
 .bypass `link`
@@ -26,4 +32,4 @@ The final hidden link can be obtained from the json returned at json.data.link.i
 
 ### Credits
 
-[Sainan/Universal-Bypass](https://github.com/Sainan/Universal-Bypass)
+Credit for original bypass method: [Sainan/Universal-Bypass](https://github.com/Sainan/Universal-Bypass)

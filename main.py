@@ -4,6 +4,7 @@ import json
 import base64
 import discord
 import random
+import os
 from discord.ext import commands
 
 
@@ -47,7 +48,6 @@ def update_dict(user_id):
     f.write(new_text_file)
     f.close()
 
-
 def bypass_link(url):
     first_link = 'https://publisher.linkvertise.com/api/v1/redirect/link/static/'
 
@@ -88,6 +88,63 @@ def bypass_link(url):
     
     return new_link
 
+def get_data():
+
+    f = open('data.json','r')
+    data = json.load(f)
+    f.close()
+
+    return data
+    
+def add_message(message,bypass_time):
+
+    data = get_data()
+
+    message_ids = []
+
+    for temp in data['messages']:
+        message_ids.append(temp['message_id'])
+    
+    message_id = message.id
+    time_created = message.created_at
+
+
+    if message_id not in message_ids:
+        new_json = {
+            "message_id":message.id,
+            "channel_id":message.channel.id,
+            "channel_name":str(message.channel),
+            "author_id": message.author.id,
+            "author_username":str(message.author),
+            "unix_epoch_time":time_created.timestamp(),
+            "year":time_created.year,
+            "month":time_created.month,
+            "day":time_created.day,
+            "hour":time_created.hour,
+            "minute":time_created.minute,
+            "second":time_created.second,
+            "command":"bypass",
+            "content":message.content,
+            "time_elapsed":bypass_time
+        }
+
+        data['messages'].append(new_json)
+
+        f = open('data.json','w')
+        json_object = json.dumps(data, indent = 4)
+        
+        f.write(json_object)
+        f.close()
+            
+def is_admin(user_id):
+    f = open('admins.txt','r')
+    admins = f.read().splitlines()
+    f.close()
+    if str(user_id) in admins:
+        return True
+    return False
+
+
 # invite https://discord.com/api/oauth2/authorize?client_id=811339635950485546&permissions=8&scope=bot
 
 client = commands.Bot(command_prefix = '.', help_command = None)
@@ -100,55 +157,108 @@ async def on_ready():
 
 @client.command()
 async def bypass(ctx, url):
-    user_id = ctx.message.author.id
-    mention = ctx.message.author.mention
 
-    limit = 15 #seconds
+    if ctx.channel.id != 497177528117624834 and ctx.channel.id != 812375257653837826:
+        embed = discord.Embed(
+            title = 'Error',
+            color = discord.Color.red(),
+        )
 
-    embed = discord.Embed(
-        title = 'Linkvertise Bypasser',
-        color = discord.Color.green(),
-        description = mention+"'s shortlink"
-    )
-    embed.set_footer(text='Bypassed by GlassTea')
+        embed.add_field(name='Wrong channel', value = 'Please use the #chat channel in https://discord.gg/JdUfnprV2t to bypass links', inline=False)
+        await ctx.send(embed = embed)
+    else:
+
+        start_time = time.time()
+
+        user_id = ctx.message.author.id
+        mention = ctx.message.author.mention
+        
+        #print(ctx.message.channel.id)
+
+        limit = 15 #seconds
+
+        embed = discord.Embed(
+            title = 'Linkvertise Bypasser',
+            color = discord.Color.green(),
+            description = mention+"'s shortlink"
+        )
+        embed.set_footer(text='Bypassed by GlassTea')
 
 
-    if str(user_id) in premiums:
-        embed.add_field(name='Old Link', value = url, inline=False)
-        embed.add_field(name='New link', value = bypass_link(url), inline=False)
-
-        await ctx.send(embed=embed)
-        #await ctx.send(mention + '\n\nOld link: ' + url + '\nNew link: ' + bypass_link(url))
-    if str(user_id) not in premiums:
-        if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
-            update_dict(user_id)
-
+        if str(user_id) in premiums:
             embed.add_field(name='Old Link', value = url, inline=False)
             embed.add_field(name='New link', value = bypass_link(url), inline=False)
 
-            await ctx.send(embed=embed)
-            
-        else:
-            embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
+            #await ctx.send(mention + '\n\nOld link: ' + url + '\nNew link: ' + bypass_link(url))
+        if str(user_id) not in premiums:
+            if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
+                update_dict(user_id)
 
-            await ctx.send(embed=embed)
+                embed.add_field(name='Old Link', value = url, inline=False)
+                embed.add_field(name='New link', value = bypass_link(url), inline=False)
+                
+            else:
+                embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
+
+        time_elapsed = time.time() - start_time
+
+        add_message(ctx.message,time_elapsed)
+
+        await ctx.send(embed = embed)
+
+@client.command()
+async def logold(ctx):
+
+    if is_admin(ctx.author.id) == True:
+
+        old_messages = []
+        data = get_data()
+        existing_messages = []
+        existing_message_ids = []
+        for msg in data['messages']:
+            existing_messages.append(msg)
+            existing_message_ids.append(msg['message_id'])
+
+        async for msg in ctx.history(limit=1000):
+            if '.bypass' in msg.content:
+                if msg.id not in existing_message_ids:
+                    old_messages.append(msg)
+        
+        for msg in old_messages:
+            add_message(msg,1.635465645613)
+        
+        await ctx.send('Logged All Old .bypass Commands Successfully')
+    else:
+        await ctx.send('Sorry, this command is for admins only!')
+
+@client.command()
+async def stats(ctx):
+    embed = discord.Embed(
+        title = 'Server Stats',
+        color = discord.Color.blue(),
+    )
+
+    embed.add_field(
+        name = 'Member count', 
+        value = '`' + str(ctx.guild.member_count) + '`' + ' members', 
+        inline = False
+    )
+
+    total_bypasses = len(get_data()['messages'])
+
+    embed.add_field(
+        name = 'Bypass Stats', 
+        value = '`' + str(total_bypasses) + '`' + ' total bypasses', 
+        inline = False
+    )
+
+
+    await ctx.send(embed = embed)
 
 @client.command()
 async def ping(ctx):
 
-    
-
     await ctx.send(str(int(client.latency*1000)) + ' ms')
-
-@client.command()
-async def invite(ctx):
-    embed = discord.Embed(
-        title = 'Invite Bot',
-        color = discord.Color.green(),
-        description = 'Click the link below to invite this bot to YOUR own server:\nhttps://discord.com/api/oauth2/authorize?client_id=811339635950485546&permissions=8&scope=bot'
-    )
-
-    await ctx.send(embed = embed)
 
 @client.command()
 async def flipcoin(ctx):
@@ -157,7 +267,7 @@ async def flipcoin(ctx):
 
     embed = discord.Embed(
         title = 'Flip coin',
-        color = discord.Color.green(),
+        color = discord.Color.blue(),
         description = option
     )
 
@@ -253,7 +363,6 @@ async def scissors(ctx):
     
     await ctx.send(embed = embed)
 
-
 @client.command()
 async def help(ctx):
     embed = discord.Embed(
@@ -274,14 +383,20 @@ async def help(ctx):
     )
 
     embed.add_field(
-        name = '.invite', 
-        value = 'Gives the invite link for the bot', 
+        name = '.ping', 
+        value = 'Gives ping', 
+        inline = False
+    )
+    
+    embed.add_field(
+        name = '.stats', 
+        value = "Displays general server stats", 
         inline = False
     )
 
     embed.add_field(
-        name = '.ping', 
-        value = 'Gives ping', 
+        name = '.logold', 
+        value = '(Admin only), Logs old commands', 
         inline = False
     )
 
@@ -313,4 +428,8 @@ async def help(ctx):
     await ctx.send(embed = embed)
 
 
-client.run(TOKEN)
+f = open('TOKEN.txt','r')
+token = f.read()
+f.close()
+
+client.run(token)
