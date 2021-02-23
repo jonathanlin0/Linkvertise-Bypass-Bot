@@ -57,39 +57,71 @@ def bypass_link(url):
     second_link_front = second_link[0:second_link.find('insert/linkvertise')]
     second_link_back = second_link[second_link.find('/target?serial'):second_link.find('base64encodedjson')]
 
-    proxy = proxies.Proxies()
+    f = open('proxies.json','r')
+    data = json.load(f)
+    f.close()
+    proxies = data['proxies']
 
-    input_link = url
-    link = ''
-    if '.com/' in input_link:
-        if '?o=' in input_link:
-            link = input_link[input_link.find('.com/')+5:input_link.find('?o=')]
-        else:
-            link = input_link[input_link.find('.com/')+5:len(input_link)]
-    if '.net/' in input_link:
-        if '?o=' in input_link:
-            link = input_link[input_link.find('.net/')+5:input_link.find('?o=')]
-        else:
-            link = input_link[input_link.find('.net/')+5:len(input_link)]
-    
+    tries = 0
 
-    #r = requests.get(first_link + link)
-    r = proxy.scrape(first_link + link)
-    text = r.text
-    link_id = text[text.find('"id":')+5:text.find(',"url":')]
+    while True:
+
+        proxy = random.choice(proxies)
+
+        http_proxy  = "http://" + proxy['proxy']['http']
+        https_proxy = "https://" + proxy['proxy']['https']
+        ftp_proxy   = "ftp://" + proxy['proxy']['http']
+
+        proxyDict = { 
+                    "http"  : http_proxy, 
+                    "https" : https_proxy, 
+                    "ftp"   : ftp_proxy
+                    }
+
+        try:
 
 
-    new_json = {"timestamp":int(time.time()), "random":"6548307", "link_id":int(link_id)}
+            #proxy = proxies.Proxies()
 
-    s = json.dumps(new_json)
-    json_converted = base64.b64encode(s.encode('utf-8'))
-    json_converted = str(json_converted)
-    json_converted = json_converted[2:len(json_converted)-1]
+            input_link = url
+            link = ''
+            if '.com/' in input_link:
+                if '?o=' in input_link:
+                    link = input_link[input_link.find('.com/')+5:input_link.find('?o=')]
+                else:
+                    link = input_link[input_link.find('.com/')+5:len(input_link)]
+            if '.net/' in input_link:
+                if '?o=' in input_link:
+                    link = input_link[input_link.find('.net/')+5:input_link.find('?o=')]
+                else:
+                    link = input_link[input_link.find('.net/')+5:len(input_link)]
+            
 
-    r = proxy.scrape(second_link_front + link + second_link_back + json_converted)
-    #r = requests.get(second_link_front + link + second_link_back + json_converted)
-    converted_json = json.loads(r.text)
-    new_link = converted_json['data']['target']
+            r = requests.get(first_link + link,proxies=proxyDict,timeout=4)
+            #r = proxy.scrape(first_link + link)
+            text = r.text
+            link_id = text[text.find('"id":')+5:text.find(',"url":')]
+
+
+            new_json = {"timestamp":int(time.time()), "random":"6548307", "link_id":int(link_id)}
+
+            s = json.dumps(new_json)
+            json_converted = base64.b64encode(s.encode('utf-8'))
+            json_converted = str(json_converted)
+            json_converted = json_converted[2:len(json_converted)-1]
+
+            #r = proxy.scrape(second_link_front + link + second_link_back + json_converted)
+            r = requests.get(second_link_front + link + second_link_back + json_converted,proxies=proxyDict,timeout=4)
+            converted_json = json.loads(r.text)
+            new_link = converted_json['data']['target']
+            break
+        except:
+            sdfasdfa='324'
+        
+        if tries >= 3:
+            return None
+        tries = tries + 1
+
     
     return new_link
 
@@ -182,7 +214,7 @@ async def bypass(ctx, url):
             
             #print(ctx.message.channel.id)
 
-            limit = 15 #seconds
+            limit = 3 #seconds
 
             embed = discord.Embed(
                 title = 'Linkvertise Bypasser',
@@ -196,7 +228,6 @@ async def bypass(ctx, url):
                 embed.add_field(name='Original Link', value = url, inline=False)
                 embed.add_field(name='New link', value = bypass_link(url), inline=False)
 
-                #await ctx.send(mention + '\n\nOld link: ' + url + '\nNew link: ' + bypass_link(url))
             if str(user_id) not in premiums:
                 if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
                     update_dict(user_id)
@@ -207,10 +238,13 @@ async def bypass(ctx, url):
                 else:
                     embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
 
+            if bypass_link(url) == None:
+                raise Exception("Link invalid")
+
             time_elapsed = time.time() - start_time
 
             add_message(ctx.message,time_elapsed)
-
+            
             await ctx.send(embed = embed)
         except:
 
@@ -223,7 +257,7 @@ async def bypass(ctx, url):
                 description = mention+"'s shortlink"
             )
 
-            embed.add_field(name='Error', value = 'Your link provided was either not a proper Linkvertise link or the link is dead.', inline=False)
+            embed.add_field(name='Error', value = 'After numerous attemps, your link could not be bypassed.\n\nYour link provided was either not a proper Linkvertise link or the link is dead.', inline=False)
             #embed.add_field(name='Error', value = 'The bot is currently being rate limited right now. Please be patient and try again later.', inline=False)
 
             time_elapsed = time.time() - start_time
