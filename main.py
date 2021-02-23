@@ -5,7 +5,9 @@ import base64
 import discord
 import random
 import os
+import proxies
 from discord.ext import commands
+
 
 
 f = open('premium.txt','r')
@@ -55,6 +57,7 @@ def bypass_link(url):
     second_link_front = second_link[0:second_link.find('insert/linkvertise')]
     second_link_back = second_link[second_link.find('/target?serial'):second_link.find('base64encodedjson')]
 
+    proxy = proxies.Proxies()
 
     input_link = url
     link = ''
@@ -68,8 +71,10 @@ def bypass_link(url):
             link = input_link[input_link.find('.net/')+5:input_link.find('?o=')]
         else:
             link = input_link[input_link.find('.net/')+5:len(input_link)]
+    
 
-    r = requests.get(first_link + link)
+    #r = requests.get(first_link + link)
+    r = proxy.scrape(first_link + link)
     text = r.text
     link_id = text[text.find('"id":')+5:text.find(',"url":')]
 
@@ -81,8 +86,8 @@ def bypass_link(url):
     json_converted = str(json_converted)
     json_converted = json_converted[2:len(json_converted)-1]
 
-
-    r = requests.get(second_link_front + link + second_link_back + json_converted)
+    r = proxy.scrape(second_link_front + link + second_link_back + json_converted)
+    #r = requests.get(second_link_front + link + second_link_back + json_converted)
     converted_json = json.loads(r.text)
     new_link = converted_json['data']['target']
     
@@ -158,6 +163,8 @@ async def on_ready():
 @client.command()
 async def bypass(ctx, url):
 
+    start_time = time.time()
+
     if ctx.channel.id != 497177528117624834 and ctx.channel.id != 812375257653837826:
         embed = discord.Embed(
             title = 'Error',
@@ -167,44 +174,62 @@ async def bypass(ctx, url):
         embed.add_field(name='Wrong channel', value = 'Please use the #chat channel in https://discord.gg/JdUfnprV2t to bypass links', inline=False)
         await ctx.send(embed = embed)
     else:
-
-        start_time = time.time()
-
-        user_id = ctx.message.author.id
-        mention = ctx.message.author.mention
         
-        #print(ctx.message.channel.id)
+        try:
 
-        limit = 15 #seconds
+            user_id = ctx.message.author.id
+            mention = ctx.message.author.mention
+            
+            #print(ctx.message.channel.id)
 
-        embed = discord.Embed(
-            title = 'Linkvertise Bypasser',
-            color = discord.Color.green(),
-            description = mention+"'s shortlink"
-        )
-        embed.set_footer(text='Bypassed by GlassTea')
+            limit = 15 #seconds
+
+            embed = discord.Embed(
+                title = 'Linkvertise Bypasser',
+                color = discord.Color.green(),
+                description = mention+"'s shortlink"
+            )
+            embed.set_footer(text='Bypassed by GlassTea')
 
 
-        if str(user_id) in premiums:
-            embed.add_field(name='Old Link', value = url, inline=False)
-            embed.add_field(name='New link', value = bypass_link(url), inline=False)
-
-            #await ctx.send(mention + '\n\nOld link: ' + url + '\nNew link: ' + bypass_link(url))
-        if str(user_id) not in premiums:
-            if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
-                update_dict(user_id)
-
-                embed.add_field(name='Old Link', value = url, inline=False)
+            if str(user_id) in premiums:
+                embed.add_field(name='Original Link', value = url, inline=False)
                 embed.add_field(name='New link', value = bypass_link(url), inline=False)
-                
-            else:
-                embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
 
-        time_elapsed = time.time() - start_time
+                #await ctx.send(mention + '\n\nOld link: ' + url + '\nNew link: ' + bypass_link(url))
+            if str(user_id) not in premiums:
+                if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
+                    update_dict(user_id)
 
-        add_message(ctx.message,time_elapsed)
+                    embed.add_field(name='Old Link', value = url, inline=False)
+                    embed.add_field(name='New link', value = bypass_link(url), inline=False)
+                    
+                else:
+                    embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
 
-        await ctx.send(embed = embed)
+            time_elapsed = time.time() - start_time
+
+            add_message(ctx.message,time_elapsed)
+
+            await ctx.send(embed = embed)
+        except:
+
+            user_id = ctx.message.author.id
+            mention = ctx.message.author.mention
+
+            embed = discord.Embed(
+                title = 'Linkvertise Bypasser',
+                color = discord.Color.red(),
+                description = mention+"'s shortlink"
+            )
+
+            embed.add_field(name='Error', value = 'Your link provided was either not a proper Linkvertise link or the link is dead.', inline=False)
+            #embed.add_field(name='Error', value = 'The bot is currently being rate limited right now. Please be patient and try again later.', inline=False)
+
+            time_elapsed = time.time() - start_time
+            add_message(ctx.message,time_elapsed)
+
+            await ctx.send(embed = embed)
 
 @client.command()
 async def logold(ctx):
@@ -254,6 +279,7 @@ async def stats(ctx):
 
 
     await ctx.send(embed = embed)
+
 
 @client.command()
 async def ping(ctx):

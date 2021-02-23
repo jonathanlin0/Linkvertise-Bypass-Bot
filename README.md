@@ -8,9 +8,9 @@ This program is a Linkvertise shortlink bypasser. Linkvertise links are hyperlin
 
 ## How It Works
 
-In order to explain how the bot works we will use the link `https://linkvertise.com/123123/randomusername?o=sharing` to demo. The link is the cleaned up to get rid of the original linkvertise.com/ and ?o=sharing part: essentially just the middle part remains. 
+In order to explain how the bot works we will use the link `https://linkvertise.com/123123/randomusername?o=sharing` to demo. The link is the cleaned up to get rid of the original linkvertise.com/ and ?o=sharing part: essentially just the middle part remains: `123123/randomusername`
 
-The bot then sends a request to ` https://publisher.linkvertise.com/api/v1/redirect/link/static/insert/linkvertise/path/here` , replacing "insert/linkvertise/part/here" with the middle cleaned up part that we got from the previous step.
+The bot then sends a request to ` https://publisher.linkvertise.com/api/v1/redirect/link/static/insert/linkvertise/path/here` , replacing "insert/linkvertise/part/here" with the middle cleaned up part that we got from the previous step, resulting in `https://publisher.linkvertise.com/api/v1/redirect/link/static/123123/randomusername`.
 
 The link id can be found from the previous request with the "id" attribute returned from the link. Then create a json file with the same setup as `{"timestamp":1606260928, "random":"6548307", "link_id":31283553}`
 
@@ -19,6 +19,12 @@ The timestamp is the unix epoch, random isn't really random (always has to be 65
 Use the same replacement process used in the first request to replace the part of url in `https://publisher.linkvertise.com/api/v1/redirect/link/insert/linkvertise/path/here/target?serial=base64encodedjson` and replace "base64encodedjson" with the json object created converted to base64, and then send a request to the new link created.
 
 The final hidden link can be obtained from the json returned at json.data.link.id
+
+## Proxies
+
+Because of the popularity of the discord bot, I implemented rotating proxies grabbed from [SSL Proxies](https://sslproxies.org/). This causes the response of the bot to slow down, but now the bot does not get ratelimited if overloaded. The program uses the proxies.py file to grab proxies and determine if the proxies are real and responsive.
+
+Credit for proxies: https://www.alexbilz.com/post/rotating-free-elite-proxies-in-python/
 
 ## Data Collection
 
