@@ -57,73 +57,107 @@ def bypass_link(url):
     second_link_front = second_link[0:second_link.find('insert/linkvertise')]
     second_link_back = second_link[second_link.find('/target?serial'):second_link.find('base64encodedjson')]
 
-    f = open('proxies.json','r')
-    data = json.load(f)
-    f.close()
-    proxies = data['proxies']
+    #only declaring variable for later use
+    proxy = "None"
 
-    tries = 0
+    new_link = "None"
 
     while True:
+        f = open('proxies.txt','r')
+        all_proxies = f.read().splitlines()
+        f.close()
 
-        proxy = random.choice(proxies)
-
-        http_proxy  = "http://" + proxy['proxy']['http']
-        https_proxy = "https://" + proxy['proxy']['https']
-        ftp_proxy   = "ftp://" + proxy['proxy']['http']
-
-        proxyDict = { 
-                    "http"  : http_proxy, 
-                    "https" : https_proxy, 
-                    "ftp"   : ftp_proxy
-                    }
-
+        proxy = random.choice(all_proxies)
+        removed_proxy = False
+            
         try:
 
+            proxy = random.choice(all_proxies)
+                
+            http_proxy  = "http://" + proxy
+            https_proxy = "https://" + proxy
+            ftp_proxy   = "ftp://" + proxy
 
-            #proxy = proxies.Proxies()
 
-            input_link = url
-            link = ''
-            if '.com/' in input_link:
-                if '?o=' in input_link:
-                    link = input_link[input_link.find('.com/')+5:input_link.find('?o=')]
-                else:
-                    link = input_link[input_link.find('.com/')+5:len(input_link)]
-            if '.net/' in input_link:
-                if '?o=' in input_link:
-                    link = input_link[input_link.find('.net/')+5:input_link.find('?o=')]
-                else:
-                    link = input_link[input_link.find('.net/')+5:len(input_link)]
+            proxy_dict = { 
+                "http"  : http_proxy, 
+                "https" : https_proxy, 
+                "ftp"   : ftp_proxy
+            }
+
+            print('Testing Proxy: ' + proxy)
+            response = requests.get('https://www.google.com/', proxies = proxy_dict,timeout = 3)
+            break
+        except requests.exceptions.ProxyError:
+            print('Proxy error, choosing new proxy')
+            try:
+                all_proxies.remove(proxy)
+                removed_proxy = True
+                print('Proxy removed from proxy list')
+            except:
+                print('Error removing proxy from proxy list')
+        except requests.exceptions.ConnectTimeout:
+            print('Connect error, choosing new proxy')
+            try:
+                all_proxies.remove(proxy)
+                removed_proxy = True
+                print('Proxy removed from proxy list')
+            except:
+                print('Error removing proxy from proxy list')
+
+        #updating proxy list
+    if removed_proxy==True:
+        new_text = ''
+        for z in range(len(all_proxies)-1):
+            new_text = new_text + all_proxies[z] + '\n'
+        new_text = new_text + all_proxies[len(all_proxies)-1]
+
+        f = open('proxies.txt','w')
+        f.write(new_text)
+        f.close()
+
+    try:
+
+        input_link = url
+        link = ''
+        if '.com/' in input_link:
+            if '?o=' in input_link:
+                link = input_link[input_link.find('.com/')+5:input_link.find('?o=')]
+            else:
+                link = input_link[input_link.find('.com/')+5:len(input_link)]
+        if '.net/' in input_link:
+            if '?o=' in input_link:
+                link = input_link[input_link.find('.net/')+5:input_link.find('?o=')]
+            else:
+                link = input_link[input_link.find('.net/')+5:len(input_link)]
             
 
-            r = requests.get(first_link + link,proxies=proxyDict,timeout=4)
-            #r = proxy.scrape(first_link + link)
-            text = r.text
-            link_id = text[text.find('"id":')+5:text.find(',"url":')]
+        r = requests.get(first_link + link,proxies=proxy_dict,timeout=2)
+        #r = proxy.scrape(first_link + link)
+        text = r.text
+        link_id = text[text.find('"id":')+5:text.find(',"url":')]
 
 
-            new_json = {"timestamp":int(time.time()), "random":"6548307", "link_id":int(link_id)}
+        new_json = {"timestamp":int(time.time()), "random":"6548307", "link_id":int(link_id)}
 
-            s = json.dumps(new_json)
-            json_converted = base64.b64encode(s.encode('utf-8'))
-            json_converted = str(json_converted)
-            json_converted = json_converted[2:len(json_converted)-1]
+        s = json.dumps(new_json)
+        json_converted = base64.b64encode(s.encode('utf-8'))
+        json_converted = str(json_converted)
+        json_converted = json_converted[2:len(json_converted)-1]
 
-            #r = proxy.scrape(second_link_front + link + second_link_back + json_converted)
-            r = requests.get(second_link_front + link + second_link_back + json_converted,proxies=proxyDict,timeout=4)
-            converted_json = json.loads(r.text)
-            new_link = converted_json['data']['target']
-            break
-        except:
-            sdfasdfa='324'
-        
-        if tries >= 3:
-            return None
-        tries = tries + 1
+        #r = proxy.scrape(second_link_front + link + second_link_back + json_converted)
+        r = requests.get(second_link_front + link + second_link_back + json_converted,proxies=proxy_dict,timeout=4)
+        converted_json = json.loads(r.text)
+        new_link = converted_json['data']['target']
 
+    except:
+        filler_value = "filler_value"
     
-    return new_link
+    new_dict = {
+        "new_link":new_link,
+        "proxy":proxy
+    }
+    return new_dict
 
 def get_data():
 
@@ -195,6 +229,7 @@ async def on_ready():
 @client.command()
 async def bypass(ctx, url):
 
+
     start_time = time.time()
 
     if ctx.channel.id != 497177528117624834 and ctx.channel.id != 812375257653837826:
@@ -205,48 +240,68 @@ async def bypass(ctx, url):
 
         embed.add_field(name='Wrong channel', value = 'Please use the #chat channel in https://discord.gg/JdUfnprV2t to bypass links', inline=False)
         await ctx.send(embed = embed)
+
     else:
         
-        try:
-
-            user_id = ctx.message.author.id
-            mention = ctx.message.author.mention
+        bypassed = False
+        attempts = -1
+        while bypassed == False and attempts < 3:
+            attempts = attempts + 1
             
-            #print(ctx.message.channel.id)
+            return_msg = bypass_link(url)
+            return_link = return_msg['new_link']
+            return_proxy = return_msg['proxy']
+            if return_link != "None" and return_proxy != "None":
+                
+                if 'http' in return_link or 'https' in return_link:
+                    bypassed = True
+                    await ctx.send('Successfully bypassed with proxy `' + return_proxy + '`')
 
-            limit = 3 #seconds
+            #try:
+                
+                user_id = ctx.message.author.id
+                mention = ctx.message.author.mention
+                
+                #print(ctx.message.channel.id)
 
-            embed = discord.Embed(
-                title = 'Linkvertise Bypasser',
-                color = discord.Color.green(),
-                description = mention+"'s shortlink"
-            )
-            embed.set_footer(text='Bypassed by GlassTea')
+                limit = 3 #seconds
 
+                embed = discord.Embed(
+                    title = 'Linkvertise Bypasser',
+                    color = discord.Color.green(),
+                    description = mention+"'s shortlink"
+                )
+                embed.set_footer(text='Bypassed by GlassTea')
 
-            if str(user_id) in premiums:
-                embed.add_field(name='Original Link', value = url, inline=False)
-                embed.add_field(name='New link', value = bypass_link(url), inline=False)
+                
 
-            if str(user_id) not in premiums:
-                if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
-                    update_dict(user_id)
+                if str(user_id) in premiums:
+                    embed.add_field(name='Original Link', value = url, inline=False)
+                    embed.add_field(name='New link', value = return_link, inline=False)
 
-                    embed.add_field(name='Old Link', value = url, inline=False)
-                    embed.add_field(name='New link', value = bypass_link(url), inline=False)
-                    
-                else:
-                    embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
+                if str(user_id) not in premiums:
+                    if last_used(user_id) == 0 or int(int(time.time()) - int(last_used(user_id))) >= limit:
+                        update_dict(user_id)
 
-            if bypass_link(url) == None:
-                raise Exception("Link invalid")
+                        embed.add_field(name='Old Link', value = url, inline=False)
+                        embed.add_field(name='New link', value = return_link, inline=False)
+                        
+                    else:
+                        embed.add_field(name='ERROR', value = 'You next avaliable bypass is in ' + str( limit - (int(time.time()) - int(last_used(user_id))) ) + ' seconds', inline=False)
 
-            time_elapsed = time.time() - start_time
+                if return_link == None:
+                    raise Exception("Link invalid")
 
-            add_message(ctx.message,time_elapsed)
-            
-            await ctx.send(embed = embed)
-        except:
+                time_elapsed = time.time() - start_time
+
+                add_message(ctx.message,time_elapsed)
+                
+                await ctx.send(embed = embed)
+                #await ctx.send('Bot is currently being upgraded, please be patient and try again later')
+            else:
+                await ctx.send('Bypassed failed using proxy `' + return_proxy + '`. Trying again with a new proxy')
+
+        if bypassed == False:
 
             user_id = ctx.message.author.id
             mention = ctx.message.author.mention
@@ -257,13 +312,13 @@ async def bypass(ctx, url):
                 description = mention+"'s shortlink"
             )
 
-            embed.add_field(name='Error', value = 'After numerous attemps, your link could not be bypassed.\n\nYour link provided was either not a proper Linkvertise link or the link is dead.', inline=False)
-            #embed.add_field(name='Error', value = 'The bot is currently being rate limited right now. Please be patient and try again later.', inline=False)
+            embed.add_field(name='Error', value = 'After numerous attemps through a multitude of proxies, your link could not be bypassed.\n\nYour link provided was either not a proper Linkvertise link or the link is dead. If you\'re sure your link is real, then try again', inline=False)
 
             time_elapsed = time.time() - start_time
             add_message(ctx.message,time_elapsed)
 
             await ctx.send(embed = embed)
+            #await ctx.send('Bot is currently being upgraded, please be patient and try again later')
 
 @client.command()
 async def logold(ctx):
