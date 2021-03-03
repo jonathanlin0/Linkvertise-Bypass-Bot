@@ -86,7 +86,8 @@ def bypass_link(url):
             }
 
             print('Testing Proxy: ' + proxy)
-            response = requests.get('https://www.google.com/', proxies = proxy_dict,timeout = 3)
+            #response = requests.get('https://www.google.com/', proxies = proxy_dict,timeout = 3)
+            response = requests.get('https://www.google.com/', proxies = proxy_dict)
             break
         except requests.exceptions.ProxyError:
             print('Proxy error, choosing new proxy')
@@ -229,6 +230,8 @@ async def on_ready():
 @client.command()
 async def bypass(ctx, url):
 
+    await ctx.send('Please use https://thebypasser.netlify.app/ for bypasses instead of this bot. Thank you\nDM me if you have any issues (the website takes anywhere from 1-15 seconds to bypass, so please be patient)')
+    return 
 
     start_time = time.time()
 
@@ -240,7 +243,22 @@ async def bypass(ctx, url):
 
         embed.add_field(name='Wrong channel', value = 'Please use the #chat channel in https://discord.gg/JdUfnprV2t to bypass links', inline=False)
         await ctx.send(embed = embed)
+    elif 'dynamic' in url:
+        user_id = ctx.message.author.id
+        mention = ctx.message.author.mention
 
+        embed = discord.Embed(
+            title = 'Linkvertise Bypasser',
+            color = discord.Color.red(),
+            description = mention+"'s shortlink"
+        )
+
+        embed.add_field(name='Error', value = 'You are trying to bypass a dynamic link. Unfortunately, you can\'t bypass dynamic links.', inline=False)
+
+        time_elapsed = time.time() - start_time
+        add_message(ctx.message,time_elapsed)
+
+        await ctx.send(embed = embed)
     else:
         
         bypassed = False
@@ -312,13 +330,14 @@ async def bypass(ctx, url):
                 description = mention+"'s shortlink"
             )
 
-            embed.add_field(name='Error', value = 'After numerous attemps through a multitude of proxies, your link could not be bypassed.\n\nYour link provided was either not a proper Linkvertise link or the link is dead. If you\'re sure your link is real, then try again', inline=False)
+            embed.add_field(name='Error', value = 'After numerous attemps through a multitude of proxies, your link could not be bypassed.\n\nYour link provided was either not a proper Linkvertise link or the link is dead.', inline=False)
 
             time_elapsed = time.time() - start_time
             add_message(ctx.message,time_elapsed)
 
             await ctx.send(embed = embed)
             #await ctx.send('Bot is currently being upgraded, please be patient and try again later')
+        
 
 @client.command()
 async def logold(ctx):
@@ -353,7 +372,7 @@ async def stats(ctx):
     )
 
     embed.add_field(
-        name = 'Member count', 
+        name = 'Server Member Count', 
         value = '`' + str(ctx.guild.member_count) + '`' + ' members', 
         inline = False
     )
@@ -363,6 +382,16 @@ async def stats(ctx):
     embed.add_field(
         name = 'Bypass Stats', 
         value = '`' + str(total_bypasses) + '`' + ' total bypasses', 
+        inline = False
+    )
+
+    f = open('log.txt','r')
+    total_users = len(f.read().splitlines())
+    f.close()
+
+    embed.add_field(
+        name = 'Total Unique Bypass Users', 
+        value = '`' + str(total_users) + '`' + ' unique users', 
         inline = False
     )
 
